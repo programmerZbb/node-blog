@@ -1,9 +1,14 @@
 // 只处理数据，不会做多余的逻辑
+const { blog } = require('../controller')
+const { SuccessModel } = require('../module/resModel')
 module.exports = (req, res) => {
     let method = req.method
     // 列表接口
     if (req.path === '/api/blog/list' && method === 'GET') {
-        return '博客列表接口'
+        const author = req.query.author
+        const keyword = req.query.keyword
+        const listData = blog.getList(author, keyword)
+        return new SuccessModel(listData, '获取成功')
     }
     // 详情接口
     if (req.method === 'GET' && req.path === '/api/blog/detail') {
