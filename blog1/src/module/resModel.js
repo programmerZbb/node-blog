@@ -2,7 +2,7 @@
 
 class BaseModel {
     constructor (data, message) {
-        if (data === 'string') {
+        if (typeof data === 'string') {
             this.message = data
             this.data = null
             data = null
@@ -11,20 +11,20 @@ class BaseModel {
         if (data) {
             this.data = data
         }
-        if (message) {
+        if (typeof message === 'string') {
             this.message = message
         }
     }
 }
 
 class SuccessModel extends BaseModel {
-    constructor (data, message) {
+    constructor (data = {}, message = '') {
         super(data, message)
         this.code = 0
     }
 }
 class EroorModel extends BaseModel {
-    constructor (data, message) {
+    constructor (data = {}, message = '') {
         super(data, message)
         this.code = -1
     }

@@ -2,31 +2,86 @@ const handleBlogRouter = require('./src/router/blog')
 const handleUserRouter = require('./src/router/user')
 const querystring = require('querystring')
 
-module.exports = (req, res) => {
-    // 返回的格式 JSON
-    res.setHeader('Content-type', 'application/json')
-    let url = req.url
-    req.path = url.split('?')[0]
-    // 处理querystring
-    req.query = querystring.parse(url.split('?')[1])
+const getPostData = (req, res) => {
+    return new Promise((resolve, reject) => {
+        if (req.method !== 'POST') {
+            return resolve({})
+        }
+        if (req.headers['content-type'] !== 'application/json') {
+            return resolve({})
+        }
+        // 处理postdata 数据
+        let postData = ''
+        req.on('data', (chunk) => {
+            postData += chunk.toString()
+        })
+        req.on('end', () => {
+            if (!postData) {
+                return resolve({})
+            }
+            resolve(JSON.parse(postData))
+        })
+    })
+}
 
+const handleRouter = (req, res) => {
     // blog 接口处理
     const blogData = handleBlogRouter(req, res)
     if (blogData) {
-        res.end(JSON.stringify(blogData))
+        blogData.then(data => {
+            res.end(JSON.stringify(data))
+        })
         return
     }
     // 处理user请求
     const userData = handleUserRouter(req, res)
     if (userData) {
-        res.end(
-            JSON.stringify(userData)
-        )
+        userData.then(data => {
+            res.end(JSON.stringify(data))
+        })
         return
     }
-
     // 处理 404
     res.writeHeader(404, {'Content-type': 'text/plain'})
     res.write('404 Not Found\n')
     res.end()
+}
+
+module.exports = (req, res) => {
+    // 返回的格式 JSON
+    res.setHeader('Content-Type', 'application/json')
+    let url = req.url
+    req.path = url.split('?')[0]
+    // 处理querystring
+    let query = url.split('?')[1]
+    req.query = querystring.parse(query)
+
+    // 处理cookie
+    req.cookie = {}
+    const cookieStr = req.headers.cookie || ''
+    cookieStr.split(';').forEach(item => {
+        if (!item) {
+            return
+        }
+        const arr = item.split('=')
+        const key = arr[0].trim()
+        const value = arr[1].trim()
+        req.cookie[key] = value
+    })
+    console.log('cookie----', req.cookie)
+
+    // 处理get请求
+    if (req.method === 'GET') {
+        handleRouter(req, res)
+    } 
+
+    // 处理post请求
+    if (req.method === 'POST') {
+        getPostData(req, res)
+            .then(postData => {
+                req.body = postData
+                handleRouter(req, res)
+            })
+    }
+
 }
