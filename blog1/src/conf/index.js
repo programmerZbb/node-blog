@@ -1,4 +1,5 @@
-const { MYSQL_CONF } = require('./db')
+const { MYSQL_CONF, REDIS_CONF } = require('./db')
 module.exports = {
-    MYSQL_CONF
+    MYSQL_CONF,
+    REDIS_CONF
 }

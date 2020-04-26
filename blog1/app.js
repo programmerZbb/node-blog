@@ -1,6 +1,17 @@
 const handleBlogRouter = require('./src/router/blog')
 const handleUserRouter = require('./src/router/user')
 const querystring = require('querystring')
+// 全局的session数据，全局的能用大写
+const SESSION_DATA = {}
+let needSetSession = false
+let userId
+const { getRedis, setRedis } = require('./src/db/redis')
+
+const getCookieExpires = () => {
+    const date = new Date()
+    date.setTime(date.getTime() + (24 * 60 * 60 * 1000))
+    return date.toUTCString()
+}
 
 const getPostData = (req, res) => {
     return new Promise((resolve, reject) => {
@@ -29,6 +40,9 @@ const handleRouter = (req, res) => {
     const blogData = handleBlogRouter(req, res)
     if (blogData) {
         blogData.then(data => {
+            if (needSetSession) {
+                res.setHeader('Set-Cookie', `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`)
+            }
             res.end(JSON.stringify(data))
         })
         return
@@ -37,6 +51,9 @@ const handleRouter = (req, res) => {
     const userData = handleUserRouter(req, res)
     if (userData) {
         userData.then(data => {
+            if (needSetSession) {
+                res.setHeader('Set-Cookie', `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`)
+            }
             res.end(JSON.stringify(data))
         })
         return
@@ -68,7 +85,19 @@ module.exports = (req, res) => {
         const value = arr[1].trim()
         req.cookie[key] = value
     })
-    console.log('cookie----', req.cookie)
+    
+    // 处理 session
+    userId = req.cookie.userid
+    if (userId) {
+        if (!SESSION_DATA[userId]) {
+            SESSION_DATA[userId] = {}
+        }
+    } else {
+        needSetSession = true
+        userId = Date.now() + '_' + Math.random()
+        SESSION_DATA[userId] = {}
+    }
+    req.session = SESSION_DATA[userId]
 
     // 处理get请求
     if (req.method === 'GET') {
