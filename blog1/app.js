@@ -2,7 +2,7 @@ const handleBlogRouter = require('./src/router/blog')
 const handleUserRouter = require('./src/router/user')
 const querystring = require('querystring')
 // 全局的session数据，全局的能用大写
-const SESSION_DATA = {}
+// const SESSION_DATA = {}
 let needSetSession = false
 let userId
 const { getRedis, setRedis } = require('./src/db/redis')
@@ -88,29 +88,39 @@ module.exports = (req, res) => {
     
     // 处理 session
     userId = req.cookie.userid
-    if (userId) {
-        if (!SESSION_DATA[userId]) {
-            SESSION_DATA[userId] = {}
-        }
-    } else {
+    // if (userId) {
+    //     if (!SESSION_DATA[userId]) {
+    //         SESSION_DATA[userId] = {}
+    //     }
+    // } else {
+    //     needSetSession = true
+    //     userId = Date.now() + '_' + Math.random()
+    //     setRedis(userId, {})
+    // }
+    if (!userId) {
         needSetSession = true
         userId = Date.now() + '_' + Math.random()
-        SESSION_DATA[userId] = {}
+        setRedis(userId, {})
     }
-    req.session = SESSION_DATA[userId]
+    // 为req创建一个sessionId属性，
+    req.sessionId = userId;
+    getRedis(req.sessionId)
+        .then(sessionData => {
+            if (sessionData === null) {
+                setRedis(req.sessionId, {})
+                req.session = {}
+            } else {
+                req.session = sessionData
+            }
 
-    // 处理get请求
-    if (req.method === 'GET') {
-        handleRouter(req, res)
-    } 
+            // 处理post请求
+            return getPostData(req, res)
+                
+        })
+        .then(postData => {
+            req.body = postData
+            handleRouter(req, res)
+        })
 
-    // 处理post请求
-    if (req.method === 'POST') {
-        getPostData(req, res)
-            .then(postData => {
-                req.body = postData
-                handleRouter(req, res)
-            })
-    }
 
 }

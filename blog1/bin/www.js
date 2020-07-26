@@ -3,6 +3,6 @@ const serverHandle = require('../app')
 
 const server = http.createServer(serverHandle)
 
-server.listen(3000, () => {
+server.listen(8080, () => {
     console.log('server is running')
 })

@@ -1,5 +1,6 @@
 const { user } = require('../controller')
 const { SuccessModel, EroorModel } = require('../module/resModel')
+const { getRedis, setRedis } = require('../db/redis')
 
 module.exports = (req, res) => {
     let method = req.method
@@ -9,6 +10,7 @@ module.exports = (req, res) => {
             if (loginRes[0]) {
                 req.session.username = loginRes[0].username
                 req.session.realname = loginRes[0].realname
+                setRedis(req.sessionId, req.session)
                 return new SuccessModel()
             }
             return new  EroorModel('用户验证失败')

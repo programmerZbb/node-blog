@@ -3,6 +3,15 @@ const { blog } = require('../controller')
 const { SuccessModel, EroorModel } = require('../module/resModel')
 module.exports = (req, res) => {
     let method = req.method
+
+    // 鉴权函数
+    const loginCheck = (req) => {
+        if (!req.session.username) {
+            return Promise.resolve(
+                new EroorModel('尚未登录')
+            )
+        }
+    }
     // 列表接口
     if (req.path === '/api/blog/list' && method === 'GET') {
         const author = req.query.author || ''
@@ -27,7 +36,13 @@ module.exports = (req, res) => {
     }
     // 更新接口
     if (req.method === 'POST' && req.path === '/api/blog/update') {
-        req.body.author = '姓名'
+        // 接口鉴权
+        const loginCheckResult = loginCheck(req)
+        if (loginCheckResult) {
+            return loginCheckResult
+        }
+
+        req.body.author = req.session.username
         const result = blog.updateBlog(req.body)
         return result.then(updateRes => {
             if (updateRes.affectedRows > 0) {
@@ -40,7 +55,12 @@ module.exports = (req, res) => {
     }
     // 保存博客
     if (req.method === 'POST' && req.path === '/api/blog/save') {
-        req.body.author = '姓名'
+         // 接口鉴权
+         const loginCheckResult = loginCheck(req)
+         if (loginCheckResult) {
+             return loginCheckResult
+         }
+        req.body.author = req.session.username
         const result = blog.saveBlog(req.body)
         return result.then(res => {
             if (res.affectedRows !== 0) {
@@ -55,7 +75,12 @@ module.exports = (req, res) => {
     }
     // 删除博客
     if (req.method === 'GET' && req.path === '/api/blog/delete') {
-        let author = '姓名'
+         // 接口鉴权
+         const loginCheckResult = loginCheck(req)
+         if (loginCheckResult) {
+             return loginCheckResult
+         }
+        let author = req.session.username
         const result = blog.delBlog(req.query.id, author)
         return result.then(delResult => {
             if (delResult.affectedRows > 0) {
